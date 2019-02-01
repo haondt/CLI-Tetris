@@ -36,7 +36,7 @@ class Grid:
 			if firstrow:
 				firstrow = False
 			else:
-				print('')
+				print('', end = '')
 			for col in row:
 				print(col, end = '')
 		sys.stdout.flush()
@@ -89,7 +89,30 @@ class Tetromino:
 		self.fill()
 
 	def can_go_left(self):
-		return False
+		config = self.shape.config(self.rotation)
+		# find rightmost block in each column
+		leftblocks = [-1 for i in range(len(config))]
+		
+		for row in range(len(config)):
+			x = self.coords[0]
+			for col in config[row]:
+				if col:
+					if leftblocks[row] == -1:
+						leftblocks[row] = x
+					else:
+						leftblocks[row] = min(leftblocks[row], x)
+				x += 1
+		
+
+		# check if it can move left
+		left = True
+		for block_i in range(len(leftblocks)):
+			block = leftblocks[block_i]
+			if block != -1:
+				if not self.grid.is_free(block-1,block_i+self.coords[1]):
+					left = False
+					break
+		return left
 
 	def left(self):
 		if self.can_go_left():
@@ -181,6 +204,9 @@ class Tetromino:
 					
 				x += 1
 			y += 1
+	
+	def get_pos(self):
+		return self.coords.copy()
 
 class I_mino:
 	configs = {
