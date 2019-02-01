@@ -40,14 +40,19 @@ class Grid:
 			for col in row:
 				print(col, end = '')
 		sys.stdout.flush()
+	
+	def get_width(self):
+		return len(self.contents[0])
+	def get_height(self):
+		return len(self.contents)
 
 class Tetromino:
 	shape = None
-	coords = [0,0]
-	rotation = 1
+	coords = None
+	rotation = None
 	grid = None
 
-	def __init__(self, shape, grid):
+	def __init__(self, shape, grid, rotation):
 		if shape == 'I':
 			self.shape = I_mino()
 		elif shape == 'J':
@@ -63,8 +68,9 @@ class Tetromino:
 		elif shape == 'L':
 			self.shape = L_mino()
 
-		self.coords = [0,0]
 		self.grid = grid
+		self.rotation = rotation
+		self.coords = [(grid.get_width()//2) -2, 0]
 		self.fill()
 	def collision(self):
 		return self.shape()
@@ -86,9 +92,10 @@ class Tetromino:
 		return False
 
 	def left(self):
-		self.clear()
-		self.coords[0] -= 1
-		self.fill()
+		if self.can_go_left():
+			self.clear()
+			self.coords[0] -= 1
+			self.fill()
 
 	def can_go_right(self):
 		config = self.shape.config(self.rotation)
@@ -114,9 +121,10 @@ class Tetromino:
 		return right
 	
 	def right(self):
-		self.clear()
-		self.coords[0] += 1
-		self.fill()
+		if self.can_go_right():
+			self.clear()
+			self.coords[0] += 1
+			self.fill()
 
 	def can_drop(self):
 		config = self.shape.config(self.rotation)
@@ -143,9 +151,10 @@ class Tetromino:
 		return drop
 	
 	def drop(self):
-		self.clear()
-		self.coords[1] += 1
-		self.fill()
+		if self.can_drop():
+			self.clear()
+			self.coords[1] += 1
+			self.fill()
 	
 	# remove only colored tiles from grid
 	def clear(self):	
@@ -385,7 +394,7 @@ class S_mino:
 		]
 	}
 
-	block = u'\u001b[32m█\u001b[0m'
+	block = u'\u001b[36m█\u001b[0m'
 
 
 	def config(self, rotation):

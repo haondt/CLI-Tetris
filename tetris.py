@@ -1,4 +1,4 @@
-import sys, os, time, random
+import sys, os, time, random, signal
 from tetromino import *
 win_rows, win_cols = os.popen('stty size', 'r').read().split()
 n = int(win_rows)
@@ -28,7 +28,15 @@ csrR = esc + u'1C'
 csrU = esc + u'1A'
 csrD = esc + u'1B'
 
+def sig_handler(signum, frame):
+	if signum == signal.SIGINT:
+		print(clr + hom, end = '')
+		sys.stdout.flush()
+		sys.exit()
+
 def main():
+
+	signal.signal(signal.SIGINT, sig_handler)
 	# clear screen
 	#print(clr + hom, end = '')
 	#for line in grid:
@@ -36,21 +44,23 @@ def main():
 	#	sys.stdout.flush()
 	grid = Grid(n,m)
 	minos = []
-	minos.append(Tetromino('J', grid))
 	t = -1	
-	fr = 0.00001
+	fr = 0.001
 	while(True):
 		t += 1
 		time.sleep(fr)
 		
-		
 		for mino in minos:
-			if mino.can_drop():
-				mino.drop()
-			if mino.can_go_right():
+			mino.drop()	
+			if random.random() < 0.5:
 				mino.right()
+			#if random.random() < 0.5:
+			#	if random.random() < 0.5:
+			#		mino.rotate('c')
+			#	else:
+			#		mino.rotate('cc')
 		if (t+1) % 10 == 0:
-			minos.append(Tetromino(random.choice('LJSZTOI'), grid))
+			minos.append(Tetromino(random.choice('LJSZTOI'), grid, random.randint(1,4)))
 
 		grid.draw()
 		
