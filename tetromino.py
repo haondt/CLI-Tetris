@@ -45,6 +45,17 @@ class Grid:
 		return len(self.contents[0])
 	def get_height(self):
 		return len(self.contents)
+	
+	def clearLine(self, line):
+		if line < len(self.contents) and line >= 0:
+			full = min([i != ' ' for i in self.contents[line]])
+			if full:
+				# clear line
+				self.contents[line] = [' ']*len(self.contents[line])
+
+	def prettyClearLine(self):
+		pass
+
 
 class Tetromino:
 	shape = None
@@ -171,6 +182,9 @@ class Tetromino:
 					drop = False
 					break
 
+		if not drop:
+			for i in range(self.coords[0], self.coords[0]+4):
+				self.grid.clearLine(i)
 		return drop
 	
 	def drop(self):

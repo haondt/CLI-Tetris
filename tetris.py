@@ -1,21 +1,9 @@
-import sys, os, time, random, signal, curses
+import sys, os, time, random, signal,  select, tty, termios, atexit
 from tetromino import *
-curses.initscr()
 win_rows, win_cols = os.popen('stty size', 'r').read().split()
 n = int(win_rows)
 m = int(win_cols)
-grid = [[' ' for i in range(m)] for j in range(n)]
-for i in range(m):
-	grid[0][i] = '-'
-	grid[n-1][i] = '-'
-for i in range(n):
-	grid[i][0] = '|'
-	grid[i][m-1] = '|'
-grid[0][0] = '+'
-grid[0][m-1] = '+'
-grid[n-1][0] = '+'
-grid[n-1][m-1] = '+'
-
+orig_termios = None
 
 # \u001b[ -> escape character
 # 2J -> clear screen
@@ -29,6 +17,7 @@ csrR = esc + u'1C'
 csrU = esc + u'1A'
 csrD = esc + u'1B'
 
+
 def sig_handler(signum, frame):
 	if signum == signal.SIGINT:
 		print(clr + hom, end = '')
@@ -37,8 +26,38 @@ def sig_handler(signum, frame):
 		curses.endwin()
 		sys.exit()
 
+def enableRawMode():
+	global orig_termios
+	orig_termios = termios.tcgetattr(sys.stdin)
+	raw_termios = termios.tcgetattr(sys.stdin)
+	
+	raw_termios[3] = raw_termios[3] & ~(termios.ECHO | termios.ICANON)
+	raw_termios[6][termios.VMIN] = 0
+	raw_termios[6][termios.VTIME] = 0
+
+	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, raw_termios)	
+	atexit.register(disableRawMode)
+
+def disableRawMode():
+	global orig_termios
+	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, orig_termios)
+	sys.stdout.flush()
+	
+def check_input():	
+	ch_set = []
+	ch = os.read(sys.stdin.fileno(), 1)
+	while ch != None and len(ch) > 0:
+		if ord(ch) == 27:
+			ch_set.append('^')
+		else:
+			ch_set.append(chr(int(ord(ch))))
+		ch = os.read(sys.stdin.fileno(), 1)
+	ch_set = ''.join(ch_set)
+	return ch_set
+
 def main():
-	signal.signal(signal.SIGINT, sig_handler)
+	#signal.signal(signal.SIGINT, sig_handler)
+	enableRawMode()
 	# clear screen
 	#print(clr + hom, end = '')
 	#for line in grid:
@@ -48,28 +67,32 @@ def main():
 	minos = []
 	mino = None
 	t = -1	
-	fr = 0.000
-	curses.curs_set(0)
+	fr = 0.1
 	mino_oldpos = None
 	goal_col = 0
+
 	while(True):
 		t += 1
 		time.sleep(fr)
 		
-		if mino == None:
+		inp = check_input()
+		
+		if inp == 'q':
+			sys.exit()
+		elif inp == ' ' and mino == None:
 			mino = Tetromino(random.choice('LJSZTOI'), grid, random.randint(1,4))
-			goal_col = random.randint(1,int(win_cols))
-		else:
-			mino.drop()	
-			if mino.get_pos()[0] < goal_col:
-				mino.right()
-			elif mino.get_pos()[0] > goal_col:
-				mino.left()
-			
-			if mino_oldpos == mino.get_pos():
-				mino = None
+		elif inp == '^[D' and mino != None:
+			mino.left()
+		elif inp == '^[C' and mino != None:
+			mino.right()
+
+
+		if mino != None:
+			if mino.can_drop():
+				mino.drop()	
 			else:
-				mino_oldpos = mino.get_pos()
+				mino = None
+			
 			#if random.random() < 0.5:
 			#	if random.random() < 0.5:
 			#		mino.rotate('c')
