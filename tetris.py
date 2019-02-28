@@ -82,14 +82,17 @@ def main():
 			sys.exit()
 		elif inp == ' ' and mino == None:
 			mino = Tetromino(random.choice('LJSZTOI'), grid, random.randint(1,4))
+		elif inp == 'r' and mino != None:
+			mino.rotate('c')
 		elif inp == '^[D' and mino != None:
 			mino.left()
 		elif inp == '^[C' and mino != None:
 			mino.right()
-		
+		elif inp == '^[B' and mino != None:
+			mino.drop()
 		if mino != None and t % fr == 0:
 			if mino.can_drop():
-				mino.drop()	
+				mino.drop()
 			else:
 				mino = None
 			

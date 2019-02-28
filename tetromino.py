@@ -1,5 +1,6 @@
 import sys
 
+
 class Grid:
 	contents = None
 	flagged = []
@@ -9,13 +10,21 @@ class Grid:
 	def reset(self):
 		self.contents = [[' ' for j in contents[i]] for i in contents]
 
-	# TODO: mark ghost blocks as free
+	# Returns true if the block is within the constraints of the grid and
+	# there are no tetromino pieces in the spot, i.e. the spot contains ' '
+	# (empty) or '█' (unformatted, is a ghost)
 	def is_free(self, x,y):
 		if x >= len(self.contents[0]) or y >= len(self.contents):
 			return False
 		else:
 			return self.contents[y][x] == ' ' or self.contents[y][x] == '█'
 	
+	# Returns true only if all [x,y] coordinates in blocks are free
+	def is_free_blocks(self, blocks):
+		if blocks == []:
+			return True
+		return min([self.is_free(i[0], i[1]) for i in blocks])
+
 	def free(self, x, y):
 		self.contents[y][x] = ' '
 		self.flagged += (y,x)
@@ -93,18 +102,43 @@ class Tetromino:
 		return self.shape()
 		
 	def rotate(self, direction):
-		self.clear()
+		if self.can_rotate(direction):
+			self.clear()
+			if direction == 'c':
+				self.rotation += 1
+				if self.rotation > 4:
+					self.rotation = 1
+			else:
+				self.rotation -= 1
+				if self.rotation < 1:
+					self.rotation = 4
+			self.fill()
 
+	def can_rotate(self, direction):
+		# get rotation
+		test_rotation = None
 		if direction == 'c':
-			self.rotation += 1
-			if self.rotation > 4:
-				self.rotation = 1
+			test_rotation = self.rotation + 1
+			if test_rotation > 4:
+				test_rotation = 1
 		else:
-			self.rotation -= 1
-			if self.rotation < 1:
-				self.rotation = 4
-		self.fill()
+			test_rotation = self.rotation - 1
+			if test_rotation < 1:
+				test_rotation = 4
 
+		# create collision map for rotated mino
+		test_config = self.shape.config(test_rotation)
+		# ignore the actual current position of the tetromino
+		config = self.shape.config(self.rotation)
+		blocks = []
+		for i in range(len(config)):
+			for j in range(len(config)):
+				if test_config[i][j] and not config[i][j]:
+					blocks.append([self.coords[0]+i, self.coords[1]+j])
+
+		# test rotated coords
+		return self.grid.is_free_blocks(blocks)
+		
 	def can_go_left(self):
 		config = self.shape.config(self.rotation)
 		# find rightmost block in each column
