@@ -9,11 +9,12 @@ class Grid:
 	def reset(self):
 		self.contents = [[' ' for j in contents[i]] for i in contents]
 
+	# TODO: mark ghost blocks as free
 	def is_free(self, x,y):
 		if x >= len(self.contents[0]) or y >= len(self.contents):
 			return False
 		else:
-			return self.contents[y][x] == ' '
+			return self.contents[y][x] == ' ' or self.contents[y][x] == '█'
 	
 	def free(self, x, y):
 		self.contents[y][x] = ' '
@@ -62,6 +63,8 @@ class Tetromino:
 	coords = None
 	rotation = None
 	grid = None
+	showGhost = False
+	ghost = None
 
 	def __init__(self, shape, grid, rotation):
 		if shape == 'I':
@@ -79,10 +82,13 @@ class Tetromino:
 		elif shape == 'L':
 			self.shape = L_mino()
 
+		self.ghost = Ghost(self.shape, grid, rotation)
 		self.grid = grid
 		self.rotation = rotation
 		self.coords = [(grid.get_width()//2) -2, 0]
+		
 		self.fill()
+
 	def collision(self):
 		return self.shape()
 		
@@ -205,6 +211,108 @@ class Tetromino:
 					
 				x += 1
 			y += 1
+		
+		if self.showGhost:
+			self.ghost.clear()
+
+	# insert only colored tiles into grid
+	def fill(self):
+		# draw ghost first, and draw tetromino on top of ghost
+		if self.showGhost:
+			# give the ghost the new coordinates
+			self.ghost.setcoords(self.coords.copy())
+			# update the ghosts rotation
+			self.ghost.setRotation(self.rotation)
+			# drop the ghost to the bottom
+			self.ghost.drop()
+			# fill in the ghost
+			self.ghost.fill()
+		
+		config = self.shape.config(self.rotation)
+		y = self.coords[1]
+		for row in config:
+			x = self.coords[0]
+			for col in row:
+				if col:
+					self.grid.fill(x, y, self.shape.get_block())
+				x += 1
+			y += 1
+
+	
+	def get_pos(self):
+		return self.coords.copy()
+
+	def showGhost(self):
+		self.showGhost = True
+		self.ghost.fill()
+
+	def hideGhost(self):
+		self.showGhost = False
+		self.ghost.clear()
+
+class Ghost:
+	shape = None
+	coords = None
+	rotation = None
+	grid = None
+	def __init__(self, shape, grid, rotation):	
+		self.shape = shape
+		self.grid = grid
+		self.coords = [0,0]
+		self.rotation = rotation
+	
+	def setRotation(self, rotation):
+		self.rotation = rotation
+	
+	def setcoords(self, coords):
+		self.coords = coords
+
+	def can_drop(self):
+		config = self.shape.config(self.rotation)
+		# find bottommost block in each column
+		lowblocks = [-1 for i in range(len(config[0]))]
+
+		y = self.coords[1]
+		for row in config:
+			for col in range(len(row)):
+				if row[col]:
+					lowblocks[col] = max(lowblocks[col], y)
+			y += 1
+		
+
+		# check if it can drop
+		drop = True
+		for block_i in range(len(lowblocks)):
+			block = lowblocks[block_i]
+			if block != -1:
+				if not self.grid.is_free(block_i+self.coords[0], block+1):
+					drop = False
+					break
+
+		if not drop:
+			for i in range(self.coords[0], self.coords[0]+4):
+				self.grid.clearLine(i)
+		return drop
+
+	# drop until ghost is at bottom
+	def drop(self):
+		while self.can_drop():
+			self.coords[1] += 1
+		self.fill()
+
+	# remove only colored tiles from grid
+	def clear(self):	
+		config = self.shape.config(self.rotation)
+		y = self.coords[1]
+		for row in config:
+			x = self.coords[0]
+			for col in row:
+				if col:
+					self.grid.free(x, y)
+					
+				x += 1
+			y += 1
+		
 
 	# insert only colored tiles into grid
 	def fill(self):
@@ -214,13 +322,11 @@ class Tetromino:
 			x = self.coords[0]
 			for col in row:
 				if col:
-					self.grid.fill(x, y, self.shape.get_block())
-					
+					# use default terminal color for ghost
+					self.grid.fill(x, y,'█')
 				x += 1
 			y += 1
-	
-	def get_pos(self):
-		return self.coords.copy()
+
 
 class I_mino:
 	configs = {

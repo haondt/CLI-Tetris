@@ -51,6 +51,8 @@ def check_input():
 			ch_set.append('^')
 		else:
 			ch_set.append(chr(int(ord(ch))))
+		if ch_set[0] != '^' or len(ch_set) >= 3:
+			break
 		ch = os.read(sys.stdin.fileno(), 1)
 	ch_set = ''.join(ch_set)
 	return ch_set
@@ -66,17 +68,16 @@ def main():
 	grid = Grid(n,m)
 	minos = []
 	mino = None
-	t = -1	
-	fr = 0.1
+	t = -1
+	fr = 100
 	mino_oldpos = None
 	goal_col = 0
-
+	ghost = None
 	while(True):
 		t += 1
-		time.sleep(fr)
+		#time.sleep(fr)
 		
 		inp = check_input()
-		
 		if inp == 'q':
 			sys.exit()
 		elif inp == ' ' and mino == None:
@@ -85,9 +86,8 @@ def main():
 			mino.left()
 		elif inp == '^[C' and mino != None:
 			mino.right()
-
-
-		if mino != None:
+		
+		if mino != None and t % fr == 0:
 			if mino.can_drop():
 				mino.drop()	
 			else:
