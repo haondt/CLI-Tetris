@@ -131,10 +131,10 @@ class Tetromino:
 		# ignore the actual current position of the tetromino
 		config = self.shape.config(self.rotation)
 		blocks = []
-		for i in range(len(config)):
-			for j in range(len(config)):
-				if test_config[i][j] and not config[i][j]:
-					blocks.append([self.coords[0]+i, self.coords[1]+j])
+		for row in range(len(config)):
+			for col in range(len(config)):
+				if test_config[row][col] and not config[row][col]:
+					blocks.append([self.coords[0]+col, self.coords[1]+row])
 
 		# test rotated coords
 		return self.grid.is_free_blocks(blocks)
